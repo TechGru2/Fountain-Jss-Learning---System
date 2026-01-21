@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>School LMS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{font-family:Arial;background:#edf1f7;margin:0}
+header{background:#0b3c6d;color:white;padding:15px;text-align:center}
+section{background:white;margin:15px;padding:15px;border-radius:8px}
+h3{color:#0b3c6d}
+input,select,button{
+ width:100%;padding:8px;margin:6px 0;font-size:14px
+}
+button{background:#0b3c6d;color:white;border:none;border-radius:4px}
+button:hover{background:#145ca8}
+.hide{display:none}
+.card{
+ background:#f9fafc;
+ padding:10px;
+ margin:8px 0;
+ border-left:5px solid #0b3c6d;
+}
+small{color:#555}
+footer{text-align:center;font-size:12px;color:#555;padding:10px}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>Fountain Primary & Junior Secondary Academy</h2>
+<p>Learning Management System (LMS)</p>
+</header>
+
+<!-- LOGIN -->
+<section id="login">
+<h3>Login</h3>
+<select id="role">
+<option value="">Select Role</option>
+<option value="admin">Admin</option>
+<option value="teacher">Teacher</option>
+<option value="student">Student</option>
+</select>
+<input id="user" placeholder="Username / Admission No">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<button onclick="show('register')">Register</button>
+<p id="msg"></p>
+</section>
+
+<!-- REGISTER -->
+<section id="register" class="hide">
+<h3>Register</h3>
+<select id="rRole">
+<option value="">Select Role</option>
+<option value="teacher">Teacher</option>
+<option value="student">Student</option>
+</select>
+<input id="rName" placeholder="Full Name">
+<input id="rId" placeholder="Admission No / Username">
+<select id="rGrade">
+<option value="">Select Grade (Students)</option>
+<option>Grade 7</option>
+<option>Grade 8</option>
+<option>Grade 9</option>
+</select>
+<input id="rPass" type="password" placeholder="Password">
+<button onclick="register()">Register</button>
+<button onclick="show('login')">Back</button>
+<p id="rMsg"></p>
+</section>
+
+<!-- ADMIN PANEL -->
+<section id="admin" class="hide">
+<h3>Admin Upload Panel</h3>
+<input id="aTitle" placeholder="Title">
+<select id="aGrade">
+<option>Grade 7</option>
+<option>Grade 8</option>
+<option>Grade 9</option>
+</select>
+<input id="aSubject" placeholder="Subject">
+<input type="file" id="aFile">
+<button onclick="upload('admin')">Upload</button>
+
+<h4>All Uploads</h4>
+<div id="adminPosts"></div>
+<button onclick="logout()">Logout</button>
+</section>
+
+<!-- TEACHER PANEL -->
+<section id="teacher" class="hide">
+<h3>Teacher Upload Panel</h3>
+<input id="tTitle" placeholder="Title">
+<select id="tGrade">
+<option>Grade 7</option>
+<option>Grade 8</option>
+<option>Grade 9</option>
+</select>
+<input id="tSubject" placeholder="Subject">
+<input type="file" id="tFile">
+<button onclick="upload('teacher')">Upload</button>
+
+<h4>My Uploads</h4>
+<div id="teacherPosts"></div>
+<button onclick="logout()">Logout</button>
+</section>
+
+<!-- STUDENT PANEL -->
+<section id="student" class="hide">
+<h3>Learning Materials</h3>
+<select id="sGrade">
+<option>Grade 7</option>
+<option>Grade 8</option>
+<option>Grade 9</option>
+</select>
+<button onclick="loadStudent()">View</button>
+<div id="studentPosts"></div>
+<button onclick="logout()">Logout</button>
+</section>
+
+<footer>
+Website created by <b>TechGru ex – Darius Muriithi</b>
+</footer>
+
+<script>
+const admin={u:"admin",p:"admin123"};
+let teachers=JSON.parse(localStorage.getItem("teachers"))||[];
+let students=JSON.parse(localStorage.getItem("students"))||[];
+let posts=JSON.parse(localStorage.getItem("posts"))||[];
+let currentUser="";
+
+function show(id){
+ document.querySelectorAll("section").forEach(s=>s.classList.add("hide"));
+ document.getElementById(id).classList.remove("hide");
+}
+
+function login(){
+ let r=role.value,u=user.value,p=pass.value;
+ if(r==="admin" && u===admin.u && p===admin.p){
+  currentUser="admin"; show("admin"); loadAdmin();
+ }
+ else if(r==="teacher"){
+  let t=teachers.find(x=>x.u===u && x.p===p);
+  if(t){currentUser=u; show("teacher"); loadTeacher();}
+  else alert("Invalid teacher login");
+ }
+ else if(r==="student"){
+  let s=students.find(x=>x.adm===u && x.p===p);
+  if(s){currentUser=u; show("student");}
+  else alert("Invalid student login");
+ }
+}
+
+function register(){
+ let r=rRole.value,n=rName.value,i=rId.value,p=rPass.value,g=rGrade.value;
+ if(!r||!n||!i||!p){rMsg.textContent="Fill all fields";return;}
+ if(r==="teacher"){
+  teachers.push({name:n,u:i,p:p});
+  localStorage.setItem("teachers",JSON.stringify(teachers));
+ }
+ if(r==="student"){
+  if(!g){rMsg.textContent="Select grade";return;}
+  students.push({name:n,adm:i,p:p,grade:g});
+  localStorage.setItem("students",JSON.stringify(students));
+ }
+ rMsg.textContent="Registered successfully";
+}
+
+function upload(role){
+ let title=(role==="admin"?aTitle.value:tTitle.value);
+ let grade=(role==="admin"?aGrade.value:tGrade.value);
+ let subject=(role==="admin"?aSubject.value:tSubject.value);
+ let fileInput=(role==="admin"?aFile:tFile);
+ let file=fileInput.files[0];
+ if(!title||!subject||!file){alert("All fields required");return;}
+
+ let reader=new FileReader();
+ reader.onload=()=>{
+  posts.push({
+   title,grade,subject,
+   file:reader.result,
+   name:file.name,
+   by:role,user:currentUser
+  });
+  localStorage.setItem("posts",JSON.stringify(posts));
+  alert("Uploaded successfully");
+  loadAdmin(); loadTeacher();
+ };
+ reader.readAsDataURL(file);
+}
+
+function loadAdmin(){
+ adminPosts.innerHTML="";
+ posts.forEach((p,i)=>{
+  adminPosts.innerHTML+=`
+  <div class="card">
+   <b>${p.title}</b><br>
+   <small>${p.grade} | ${p.subject} | Uploaded by ${p.by}</small><br>
+   <a href="${p.file}" download="${p.name}">Download</a>
+   <button onclick="del(${i})">Delete</button>
+  </div>`;
+ });
+}
+
+function loadTeacher(){
+ teacherPosts.innerHTML="";
+ posts.filter(p=>p.user===currentUser).forEach(p=>{
+  teacherPosts.innerHTML+=`
+  <div class="card">
+   <b>${p.title}</b><br>
+   <small>${p.grade} | ${p.subject}</small><br>
+   <a href="${p.file}" download="${p.name}">Download</a>
+  </div>`;
+ });
+}
+
+function loadStudent(){
+ studentPosts.innerHTML="";
+ posts.filter(p=>p.grade===sGrade.value).forEach(p=>{
+  studentPosts.innerHTML+=`
+  <div class="card">
+   <b>${p.title}</b><br>
+   <small>${p.subject}</small><br>
+   <a href="${p.file}" download="${p.name}">Download</a>
+  </div>`;
+ });
+}
+
+function del(i){
+ posts.splice(i,1);
+ localStorage.setItem("posts",JSON.stringify(posts));
+ loadAdmin();
+}
+
+function logout(){location.reload();}
+</script>
+
+</body>
+</html>
